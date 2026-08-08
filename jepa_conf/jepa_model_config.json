@@ -1,0 +1,13 @@
+{
+    "image_size": 84,
+    "duration": 8,
+    "patch_size": 12,
+    "tubelet_size": 2,
+    "encoder_dim": 240,
+    "encoder_depth": 6,
+    "attention_dim": 336,
+    "attention_num_heads": 6,
+    "fsq_dim": 6,
+    "fsq_levels": [8, 8, 8, 5, 5, 5],
+    "causal": 1
+}

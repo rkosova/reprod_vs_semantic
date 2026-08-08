@@ -1,0 +1,6 @@
+{
+    "predictor_dim": 120,
+    "depth": 3,
+    "attention_dim": 144,
+    "attention_num_heads": 6
+}

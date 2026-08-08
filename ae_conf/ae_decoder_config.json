@@ -1,0 +1,6 @@
+{
+    "decoder_dim": 240,
+    "depth": 6,
+    "attention_dim": 336,
+    "attention_num_heads": 6
+}
