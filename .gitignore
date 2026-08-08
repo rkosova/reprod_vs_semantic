@@ -4,5 +4,5 @@ ae_runs/
 jepa_runs/
 
 __pycache__/
-*.eff-info/
+*.egg-info/
 *.pyc
