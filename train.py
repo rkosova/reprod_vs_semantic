@@ -74,7 +74,16 @@ parser.add_argument(
     default=12, 
     help="Number of clips to sample per trajectory in the dataset."
 )
-
+parser.add_argument(
+    "--dataset-path",
+    type=str,
+    default="./data/walker_trajs_h5/data.h5"
+)
+parser.add_argument(
+    "--stride",
+    type=int,
+    default=1
+)
 ## JEPA Specific
 parser.add_argument(
     "--ema-starting-momentum",
@@ -175,6 +184,8 @@ if args.model == "jepa":
         data_num_frames=args.data_num_frames,
         sample_num_frames=args.sample_num_frames,
         sample_num_clips=args.sample_num_clips,
+        data_path=args.dataset_path,
+        stride=args.stride,
         ema_starting_momentum=args.ema_starting_momentum,
         ema_final_momentum=args.ema_final_momentum,
         var_reg=args.var_reg,
@@ -199,4 +210,5 @@ elif args.model == "ae":
         data_num_frames=args.data_num_frames,
         sample_num_frames=args.sample_num_frames,
         sample_num_clips=args.sample_num_clips,
+        data_path=args.dataset_path
     )

@@ -87,7 +87,7 @@ def _train_epoch(
     
     bar = tqdm(enumerate(dataloader), desc="Training", total=len(dataloader))
 
-    for _, (X, _, _, _, _, _) in bar:
+    for _, (X, *_) in bar:
         optim.zero_grad(set_to_none=True)
         X = X.to(device, non_blocking=True)
 
@@ -137,6 +137,8 @@ def train(
         data_num_frames=100,
         sample_num_frames=8,
         sample_num_clips=12,
+        data_path="./data/walker_trajs_h5/data.h5",
+        stride=1,
         ema_starting_momentum=0.996,
         ema_final_momentum=0.999,
         var_reg=0.0,
@@ -161,6 +163,8 @@ def train(
         "data_num_frames": data_num_frames,
         "sample_num_frames": sample_num_frames,
         "sample_num_clips": sample_num_clips,
+        "data_path": data_path,
+        "stride": stride,
         "ema_starting_momentum": ema_starting_momentum,
         "ema_final_momentum": ema_final_momentum,
         "var_reg": var_reg,
@@ -185,15 +189,18 @@ def train(
         T.RandomCrop(size=(84, 84))
     ])
 
-    dataset, testset, _, _ = get_dataset(
+    dataset, testset, *_ = get_dataset(
         rng=rng,
-        root="./data/walker_trajs_h5/data.h5",
+        root=data_path,
         sample_num_frames=sample_num_frames,
         sample_num_clips=sample_num_clips,
         data_num_traj=data_num_traj,
         data_num_frames=data_num_frames,
-        train_transform=shift_transform
+        stride=stride,
+        train_transform=shift_transform,
+        dataset=data_path.split("/")[2].split("_")[0]
     )
+
 
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)

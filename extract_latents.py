@@ -8,7 +8,8 @@ def extract_and_save_latents(
         dataloader,
         save_dir,
         chunk_size=10_000,
-        device="cuda"
+        device="cuda",
+        data="cheetah"
 ):
     os.makedirs(save_dir, exist_ok=True)
     model.eval()
@@ -22,7 +23,7 @@ def extract_and_save_latents(
 
     dl_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Encoding...")
     with torch.no_grad():
-        for idx, (inputs, actions, rewards, obs_orientations, obs_velocities, obs_height) in dl_bar:
+        for idx, (inputs, actions, rewards, *obs_together) in dl_bar:
             inputs = inputs.to(device)
 
             codes = model(inputs)
@@ -30,8 +31,14 @@ def extract_and_save_latents(
             latents_buffer.append(codes.cpu())
             actions_buffer.append(actions)
             rewards_buffer.append(rewards)
-            obs_height = obs_height.unsqueeze(-1)
-            obs = torch.cat([obs_velocities[:, -1], obs_height[:, -1], obs_orientations[:, -1]], dim=-1)
+            if data == "walker":
+                obs_orientations, obs_velocities, obs_height = obs_together
+                obs_height = obs_height.unsqueeze(-1)
+                obs = torch.cat([obs_velocities[:, -1], obs_height[:, -1], obs_orientations[:, -1]], dim=-1)
+            else:
+                # cheetah here
+                obs_position, obs_velocity = obs_together
+                obs = torch.cat([obs_position[:, -1], obs_velocity[:, -1]], dim=-1)
             state_buffer.append(obs)
 
             current_buffer_size = sum(b.size(0) for b in latents_buffer)
@@ -137,6 +144,12 @@ if __name__ == "__main__":
         default=5_000,
         help="Extracted data buffer size."
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=["walker", "cheetah"],
+        default="walker"
+    )
     args = parser.parse_args()
 
 
@@ -148,12 +161,13 @@ if __name__ == "__main__":
     save_dir_ts = os.path.join(run_dir, "latents", "testing")
 
     dataset, testset, _, _ = get_dataset(rng=rng, 
-                                        root="./data/walker_trajs_h5/state_t4165_f100_r84_s43.h5", 
+                                        root=f"./data/{args.dataset}_trajs_h5/state_t4165_f100_r84_s43.h5", 
                                         sample_num_frames=args.sample_num_frames, 
                                         sample_num_clips=args.sample_num_clips, 
                                         data_num_traj=args.data_num_traj, 
                                         data_num_frames=args.data_num_frames,
-                                        split_ratio=0.7)  
+                                        split_ratio=0.7,
+                                        dataset=args.dataset)  
     dataloader = DataLoader(dataset, batch_size=2048, shuffle=True, num_workers=4, pin_memory=True)
     testloader = DataLoader(testset, batch_size=2048, shuffle=True, num_workers=4, pin_memory=True)
 
@@ -172,7 +186,7 @@ if __name__ == "__main__":
 
     model.to(device)
 
-    extract_and_save_latents(model, dataloader, save_dir_tr, args.chunk_size, device)
-    extract_and_save_latents(model, testloader, save_dir_ts, args.chunk_size, device)
+    extract_and_save_latents(model, dataloader, save_dir_tr, args.chunk_size, device, args.dataset)
+    extract_and_save_latents(model, testloader, save_dir_ts, args.chunk_size, device, args.dataset)
     
 

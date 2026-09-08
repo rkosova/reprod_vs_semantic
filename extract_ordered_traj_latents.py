@@ -23,6 +23,7 @@ def extract_and_save_traj_latents(
     save_dir,
     chunk_size=10_000,
     device="cuda",
+    dataset="walker"
 ):
     """Encode and save sliding-window transition examples.
 
@@ -87,7 +88,7 @@ def extract_and_save_traj_latents(
     dl_bar = tqdm(enumerate(dataloader), total=len(dataloader), desc="Encoding")
     with torch.no_grad():
         for _, batch in dl_bar:
-            frames, actions, rewards, orientations, velocities, heights = batch
+            frames, actions, rewards, *obs = batch
             batch_size, trajectory_frames = frames.shape[:2]
 
             window_index_cpu = torch.arange(trajectory_frames).unfold(
@@ -130,17 +131,30 @@ def extract_and_save_traj_latents(
             windowed_rewards = rewards[:, window_index_cpu]
             transition_rewards = windowed_rewards[:, 1:, -1].flatten(0, 1).cpu()
 
-            windowed_orientations = orientations[:, window_index_cpu]
-            windowed_velocities = velocities[:, window_index_cpu]
-            windowed_heights = heights[:, window_index_cpu]
-            transition_states = torch.cat(
-                (
-                    windowed_velocities[:, 1:, -1],
-                    windowed_heights[:, 1:, -1].unsqueeze(-1),
-                    windowed_orientations[:, 1:, -1],
-                ),
-                dim=-1,
-            ).flatten(0, 1).cpu()
+            if dataset == "walker":
+                orientations, velocities, heights = obs
+                windowed_orientations = orientations[:, window_index_cpu]
+                windowed_velocities = velocities[:, window_index_cpu]
+                windowed_heights = heights[:, window_index_cpu]
+                transition_states = torch.cat(
+                    (
+                        windowed_velocities[:, 1:, -1],
+                        windowed_heights[:, 1:, -1].unsqueeze(-1),
+                        windowed_orientations[:, 1:, -1],
+                    ),
+                    dim=-1,
+                ).flatten(0, 1).cpu()
+            else:
+                position, velocity = obs
+                windowed_positions = position[:, window_index_cpu]
+                windowed_velocities = velocity[:, window_index_cpu]
+                transition_states = torch.cat(
+                    (
+                        windowed_positions[:, 1:, -1],
+                        windowed_velocities[:, 1:, -1],
+                    ),
+                    dim=-1,
+                ).flatten(0, 1).cpu()
 
             latents_buffer.append(present)
             future_latents_buffer.append(future)
@@ -216,6 +230,12 @@ if __name__ == "__main__":
         type=int,
         default=2
     )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        choices=["walker", "cheetah"],
+        default="walker"
+    )
     args = parser.parse_args()
 
 
@@ -226,13 +246,16 @@ if __name__ == "__main__":
     save_dir_tr = os.path.join(run_dir, "latents_transition", "training")
     save_dir_ts = os.path.join(run_dir, "latents_transition", "testing")
 
+    print(args.dataset)
     dataset, testset, _, _ = get_dataset(rng=rng, 
-                                        root="./data/walker_trajs_h5/state_t4165_f100_r84_s43.h5", 
+                                        root=f"./data/{args.dataset}_trajs_h5/state_t4165_f100_r84_s43.h5", 
                                         sample_num_frames=args.data_num_frames, 
                                         sample_num_clips=1, 
                                         data_num_traj=args.data_num_traj, 
                                         data_num_frames=args.data_num_frames,
-                                        split_ratio=0.7)  
+                                        split_ratio=0.7,
+                                        dataset=args.dataset)
+      
     dataloader = DataLoader(dataset, batch_size=25, shuffle=True, num_workers=4, pin_memory=True)
     testloader = DataLoader(testset, batch_size=25, shuffle=True, num_workers=4, pin_memory=True)
 
@@ -251,5 +274,5 @@ if __name__ == "__main__":
 
     model.to(device)
 
-    extract_and_save_traj_latents(args.sample_num_frames, args.num_frames_tubelet, model, dataloader, save_dir_tr, args.chunk_size, device)
-    extract_and_save_traj_latents(args.sample_num_frames, args.num_frames_tubelet, model, testloader, save_dir_ts, args.chunk_size, device)
+    extract_and_save_traj_latents(args.sample_num_frames, args.num_frames_tubelet, model, dataloader, save_dir_tr, args.chunk_size, device, args.dataset)
+    extract_and_save_traj_latents(args.sample_num_frames, args.num_frames_tubelet, model, testloader, save_dir_ts, args.chunk_size, device, args.dataset)

@@ -49,7 +49,7 @@ def _train_epoch(
 
     bar = tqdm(enumerate(dataloader), desc="Training", total=len(dataloader))
 
-    for _, (X, _, _, _, _, _) in bar:
+    for _, (X, *_) in bar:
         optimizer.zero_grad(set_to_none=True)
         X = X.to(device)
 
@@ -90,7 +90,7 @@ def _eval_epoch(
     
     bar = tqdm(enumerate(dataloader), desc=" ↪Eval.", total=len(dataloader))
 
-    for _, (X, _, _, _, _, _) in bar:
+    for _, (X, *_) in bar:
         X = X.to(device)
 
         with torch.autocast(device, dtype=torch.bfloat16):
@@ -126,7 +126,8 @@ def train(
         data_num_traj=25000,
         data_num_frames=100,
         sample_num_frames=8,
-        sample_num_clips=12
+        sample_num_clips=12,
+        data_path="./data/walker_trajs_h5/data.h5"
 ):
     RUN_PARAMS = {
         "epochs": epochs,
@@ -139,6 +140,7 @@ def train(
         "data_num_frames": data_num_frames,
         "sample_num_frames": sample_num_frames,
         "sample_num_clips": sample_num_clips,
+        "data_path": data_path
     }
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -146,13 +148,14 @@ def train(
     rng = seed_everything(seed=seed)
 
     # DATASET HANDLING
-    dataset, testset, _, _ = get_dataset(
+    dataset, testset, *_ = get_dataset(
         rng=rng,
-        root="./data/walker_trajs_h5/data.h5",
+        root=data_path,
         sample_num_frames=sample_num_frames,
         sample_num_clips=sample_num_clips,
         data_num_traj=data_num_traj,
         data_num_frames=data_num_frames,
+        dataset=data_path.split("/")[2].split("_")[0]
     )
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
