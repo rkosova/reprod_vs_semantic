@@ -5,16 +5,31 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rvsablation"
 version = "0.1.0"
+description = "Reconstruction vs. Prediction Pre-Training of Discrete Video Representations for Continuous Control"
+readme = "README.md"
 requires-python = ">=3.11"
-
+authors = [
+    { name = "Ron Kosova", email = "ron.kosova@helsinki.fi" },
+]
 dependencies = [
     "torch",
     "torchvision",
     "numpy",
     "h5py",
     "torchmetrics",
-    "tqdm"
+    "tqdm",
 ]
+
+[project.optional-dependencies]
+notebooks = [
+    "matplotlib",
+    "jupyter",
+    "matrepr",
+]
+
+[project.urls]
+Paper = "https://arxiv.org/abs/2611.24781"
 
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["rvsablation*"]
