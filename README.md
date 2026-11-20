@@ -65,7 +65,7 @@ To make the comparison capacity- and architecture-matched:
 Requires **Python >= 3.11** and a CUDA-capable GPU (all encoders in the paper were trained on a single 12 GB RTX 3060).
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/rkosova/reprod_vs_semantic
 cd reprod_vs_semantic
 pip install -e .
 ```
