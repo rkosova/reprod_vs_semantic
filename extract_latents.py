@@ -9,7 +9,7 @@ def extract_and_save_latents(
         save_dir,
         chunk_size=10_000,
         device="cuda",
-        data="cheetah"
+        data="walker"
 ):
     os.makedirs(save_dir, exist_ok=True)
     model.eval()
@@ -36,9 +36,7 @@ def extract_and_save_latents(
                 obs_height = obs_height.unsqueeze(-1)
                 obs = torch.cat([obs_velocities[:, -1], obs_height[:, -1], obs_orientations[:, -1]], dim=-1)
             else:
-                # cheetah here
-                obs_position, obs_velocity = obs_together
-                obs = torch.cat([obs_position[:, -1], obs_velocity[:, -1]], dim=-1)
+                raise ValueError(f"Unsupported dataset: {data}")
             state_buffer.append(obs)
 
             current_buffer_size = sum(b.size(0) for b in latents_buffer)
@@ -147,7 +145,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["walker", "cheetah"],
+        choices=["walker"],
         default="walker"
     )
     args = parser.parse_args()

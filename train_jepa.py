@@ -179,6 +179,7 @@ def train(
     }
 
 
+
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"🚀 STARTING TRAINING ON {DEVICE} 🚀")
     rng = seed_everything(seed=seed)

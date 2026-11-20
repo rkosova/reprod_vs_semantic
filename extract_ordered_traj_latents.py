@@ -233,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=["walker", "cheetah"],
+        choices=["walker"],
         default="walker"
     )
     args = parser.parse_args()

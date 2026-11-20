@@ -446,9 +446,8 @@ def get_dataset(rng: np.random.Generator,
     if dataset == "walker":
         train_ds_cl = WalkerHDF5
         test_ds_cl = WalkerHDF5
-    elif dataset == "cheetah":
-        train_ds_cl = CheetahHDF5
-        test_ds_cl = CheetahHDF5
+    else:
+        raise ValueError(f"Unsupported dataset: {dataset}")
         
     train_ds = train_ds_cl(root, train_indices, train_traj_ids, stride, sample_num_frames, transform=train_transform)
     test_ds = test_ds_cl(root, test_indices, test_traj_ids, stride, sample_num_frames, transform=None)
@@ -548,60 +547,3 @@ class WalkerHDF5(Dataset):
         
         return frames_tensor, actions_tensor, rewards_tensor, \
                 obs_orientations_tensor, obs_velocity_tensor, obs_height
-
-
-class CheetahHDF5(Dataset):
-    def __init__(self,
-                 root: str,
-                 sample_indices: np.ndarray,
-                 sample_traj_ids: np.ndarray,
-                 stride: int=1,
-                 sample_num_frames: int=4,
-                 transform=None): # <-- Added transform
-        super().__init__()
-        self.root = root
-        self.sample_indices = sample_indices
-        self.sample_traj_ids = sample_traj_ids
-        self.stride = stride
-        self.sample_num_frames = sample_num_frames
-        self.transform = transform # <-- Store it
-
-        self.num_traj, self.frames_per_traj = self.sample_indices.shape
-        self.total_samples = self.sample_indices.size
-        self.db = None
-
-    def __len__(self):
-        return self.total_samples
-    
-    def __getitem__(self, index):
-        if self.db is None:
-            self.db = h5py.File(self.root, 'r')
-
-        local_i = index // self.frames_per_traj 
-        j = index % self.frames_per_traj
-
-        traj_i = self.sample_traj_ids[local_i] 
-
-        start = self.sample_indices[local_i, j]
-        end = start + self.stride * self.sample_num_frames
-
-        frames = self.db['frames'][traj_i, start:end:self.stride]
-        actions = self.db['actions'][traj_i, start:end:self.stride]
-        rewards = self.db['rewards'][traj_i, start:end:self.stride]
-        obs_position = self.db['obs_position'][traj_i, start:end:self.stride]
-        obs_velocity = self.db['obs_velocity'][traj_i, start:end:self.stride]
-
-        frames_tensor = torch.from_numpy(frames).float() / 255.0
-        frames_tensor = frames_tensor.permute(0, 3, 1, 2) # (T, C, H, W)
-        
-        # --- NEW: Apply transform if it exists ---
-        if self.transform is not None:
-            frames_tensor = self.transform(frames_tensor)
-
-        actions_tensor = torch.from_numpy(actions)
-        rewards_tensor = torch.from_numpy(rewards)
-        obs_position_tensor = torch.from_numpy(obs_position)
-        obs_velocity_tensor = torch.from_numpy(obs_velocity)
-        
-        return frames_tensor, actions_tensor, rewards_tensor, \
-                obs_position_tensor, obs_velocity_tensor
